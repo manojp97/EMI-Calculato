@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>EMI Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #83a4d4, #b6fbff);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 420px;
+      overflow-x: auto;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 25px;
+    }
+    label {
+      color: #555;
+      font-weight: 500;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0 20px 0;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      outline: none;
+      transition: border 0.3s;
+    }
+    input:focus {
+      border-color: #007bff;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #007bff;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #2c3e50;
+      text-align: center;
+    }
+    canvas {
+      margin-top: 25px;
+      max-width: 100%;
+    }
+    table {
+      margin-top: 20px;
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+    h3 {
+      margin-top: 25px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>💸 EMI Calculator</h2>
+
+    <label for="amount">Loan Amount (₹)</label>
+    <input type="number" id="amount" placeholder="e.g. 100000">
+
+    <label for="rate">Interest Rate (% per year)</label>
+    <input type="number" id="rate" placeholder="e.g. 10">
+
+    <label for="tenure">Loan Tenure (years)</label>
+    <input type="number" id="tenure" placeholder="e.g. 5">
+
+    <button onclick="calculateEMI()">Calculate EMI</button>
+
+    <div id="result"></div>
+    <canvas id="emiChart"></canvas>
+    <div id="tableContainer"></div>
+  </div>
+
+  <script>
+    let chart;
+
+    function calculateEMI() {
+      const principal = parseFloat(document.getElementById('amount').value);
+      const annualRate = parseFloat(document.getElementById('rate').value);
+      const years = parseFloat(document.getElementById('tenure').value);
+
+      if (!principal || !annualRate || !years) {
+        document.getElementById('result').innerText = "❗ Please fill all fields.";
+        return;
+      }
+
+      const monthlyRate = annualRate / 12 / 100;
+      const months = years * 12;
+
+      const emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) /
+                  (Math.pow(1 + monthlyRate, months) - 1);
+      const totalPayment = emi * months;
+      const totalInterest = totalPayment - principal;
+
+      document.getElementById('result').innerText = `📅 Monthly EMI: ₹${emi.toFixed(2)}`;
+
+      // Chart
+      const ctx = document.getElementById('emiChart').getContext('2d');
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Principal Amount', 'Total Interest'],
+          datasets: [{
+            label: 'Loan Breakdown',
+            data: [principal, totalInterest],
+            backgroundColor: ['#007bff', '#ffc107'],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+
+      // Amortization Table
+      let tableHTML = `<h3>📄 Amortization Schedule</h3>`;
+      tableHTML += `<table>
+        <tr>
+          <th>Month</th>
+          <th>Principal (₹)</th>
+          <th>Interest (₹)</th>
+          <th>Balance (₹)</th>
+        </tr>`;
+
+      let balance = principal;
+
+      for (let i = 1; i <= months; i++) {
+        const interest = balance * monthlyRate;
+        const principalPart = emi - interest;
+        balance -= principalPart;
+
+        tableHTML += `<tr>
+          <td>${i}</td>
+          <td>${principalPart.toFixed(2)}</td>
+          <td>${interest.toFixed(2)}</td>
+          <td>${balance > 0 ? balance.toFixed(2) : 0}</td>
+        </tr>`;
+      }
+
+      tableHTML += `</table>`;
+      document.getElementById("tableContainer").innerHTML = tableHTML;
+    }
+  </script>
+</body>
+</html>
